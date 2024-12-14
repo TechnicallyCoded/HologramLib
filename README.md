@@ -10,6 +10,7 @@
 </div>
 
 # Features
+- Folia compatible
 - Text animations
 - Minimessage support
 - Packet based
