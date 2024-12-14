@@ -1,4 +1,4 @@
-package com.maximde.hologramapi.hologram;
+package com.tcoded.hologramlib.hologram;
 
 import com.github.retrooper.packetevents.protocol.entity.type.EntityTypes;
 import com.github.retrooper.packetevents.util.Quaternion4f;
@@ -8,25 +8,24 @@ import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerDe
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerEntityTeleport;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerSetPassengers;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerSpawnEntity;
-import com.maximde.hologramapi.HologramAPI;
-import com.maximde.hologramapi.utils.MiniMessage;
-import com.maximde.hologramapi.utils.Vector3F;
+import com.tcoded.hologramlib.HologramLib;
+import com.tcoded.hologramlib.utils.Vector3F;
+import com.tcoded.folialib.impl.PlatformScheduler;
+import com.tcoded.folialib.wrapper.task.WrappedTask;
 import io.github.retrooper.packetevents.util.SpigotConversionUtil;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.experimental.Accessors;
 import me.tofaa.entitylib.meta.EntityMeta;
 import me.tofaa.entitylib.meta.display.AbstractDisplayMeta;
 import me.tofaa.entitylib.meta.display.TextDisplayMeta;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextComponent;
+import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.entity.Display;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.TextDisplay;
-import org.bukkit.scheduler.BukkitTask;
 import org.joml.Vector3f;
 
 import java.util.*;
@@ -36,14 +35,12 @@ import java.util.concurrent.ThreadLocalRandom;
 
 public class TextHologram {
 
-    @Getter @Accessors(chain = true)
+    private final HologramLib lib;
+
     private long updateTaskPeriod = 20L * 3;
-    @Getter @Accessors(chain = true)
     private double nearbyEntityScanningDistance = 40.0;
-    @Getter
     private final String id;
 
-    @Getter @Accessors(chain = true)
     private int entityID;
 
     protected Component text = Component.text("Hologram API");
@@ -53,51 +50,33 @@ public class TextHologram {
     protected Quaternion4f rightRotation = new Quaternion4f(0, 0, 0, 1);
     protected Quaternion4f leftRotation = new Quaternion4f(0, 0, 0, 1);
 
-    @Setter @Getter @Accessors(chain = true)
     private Display.Billboard billboard = Display.Billboard.CENTER;
-    @Setter @Getter @Accessors(chain = true)
     private int interpolationDurationRotation = 10;
-    @Setter @Getter @Accessors(chain = true)
     private int interpolationDurationTransformation = 10;
-    @Setter @Getter @Accessors(chain = true)
     private double viewRange = 1.0;
-    @Setter @Getter @Accessors(chain = true)
     private boolean shadow = true;
-    @Setter @Getter @Accessors(chain = true)
     private int maxLineWidth = 200;
-    @Setter @Getter @Accessors(chain = true)
     private int backgroundColor;
-    @Setter @Getter @Accessors(chain = true)
     private boolean seeThroughBlocks = false;
-    @Getter @Accessors(chain = true)
     private TextDisplay.TextAlignment alignment = TextDisplay.TextAlignment.CENTER;
-    @Setter @Getter @Accessors(chain = true)
     private byte textOpacity = (byte) -1;
 
-    @Getter @Accessors(chain = true)
     private final RenderMode renderMode;
 
-    @Getter @Accessors(chain = true)
     private Location location;
 
-    @Getter
     private final List<Player> viewers = new CopyOnWriteArrayList<>();
 
-    @Getter
     private boolean dead = false;
 
-    @Getter
-    private BukkitTask task;
+    private WrappedTask task;
 
-    public TextHologram(String id, RenderMode renderMode) {
+    public TextHologram(HologramLib lib, String id, RenderMode renderMode) {
+        this.lib = lib;
         this.renderMode = renderMode;
         validateId(id);
         this.id = id.toLowerCase();
         startRunnable();
-    }
-
-    public TextHologram(String id) {
-        this(id, RenderMode.NEARBY);
     }
 
     private void validateId(String id) {
@@ -108,7 +87,7 @@ public class TextHologram {
 
     private void startRunnable() {
         if (task != null) return;
-        task = Bukkit.getServer().getScheduler().runTaskTimer(HologramAPI.getInstance(), this::updateAffectedPlayers, 20L, updateTaskPeriod);
+        task = getScheduler().runTimerAsync(this::updateAffectedPlayers, 20L, updateTaskPeriod);
     }
 
     /**
@@ -122,7 +101,7 @@ public class TextHologram {
                 entityID, Optional.of(UUID.randomUUID()), EntityTypes.TEXT_DISPLAY,
                 new Vector3d(location.getX(), location.getY() + 1, location.getZ()), 0f, 0f, 0f, 0, Optional.empty()
         );
-        HologramAPI.getInstance().getServer().getScheduler().runTask(HologramAPI.getInstance(), () -> {
+        getScheduler().runNextTick(wt -> {
             updateAffectedPlayers();
             sendPacket(packet);
             this.dead = false;
@@ -133,13 +112,13 @@ public class TextHologram {
     public void attach(TextHologram textHologram, int entityID) {
         int[] hologramToArray = { textHologram.getEntityID() };
         WrapperPlayServerSetPassengers attachPacket = new WrapperPlayServerSetPassengers(entityID, hologramToArray);
-        HologramAPI.getInstance().getServer().getScheduler().runTask(HologramAPI.getInstance(), () -> {
+        getScheduler().runNextTick(wt -> {
             sendPacket(attachPacket);
         });
     }
 
     public TextHologram update() {
-        HologramAPI.getInstance().getServer().getScheduler().runTask(HologramAPI.getInstance(), () -> {
+        getScheduler().runNextTick(wt -> {
             updateAffectedPlayers();
             TextDisplayMeta meta = createMeta();
             sendPacket(meta.createPacket());
@@ -276,36 +255,132 @@ public class TextHologram {
     }
 
     public TextHologram setMiniMessageText(String text) {
-        this.text = MiniMessage.get(replaceFontImages(text));
+        this.text = MiniMessage.miniMessage().deserialize(replaceFontImages(text));
         return this;
     }
 
     private String replaceFontImages(String string) {
-        return HologramAPI.getReplaceText().replace(string);
+        return lib.getReplaceText().replace(string);
     }
 
     private void updateAffectedPlayers() {
-        viewers.stream()
-                .filter(player -> player.isOnline() && (player.getWorld() != this.location.getWorld() || player.getLocation().distance(this.location) > 20))
-                .forEach(player -> {
-                    WrapperPlayServerDestroyEntities packet = new WrapperPlayServerDestroyEntities(this.entityID);
-                    HologramAPI.getPlayerManager().sendPacket(player, packet);
-                });
+        World world = this.location.getWorld();
+        if (world == null) return;
 
-        if (this.renderMode == RenderMode.VIEWER_LIST) return;
+        viewers.forEach(player -> {
+            getScheduler().runAtEntity(player, wt -> {
+                if (!player.isOnline()) return;
+                if (player.getWorld() == world) return;
+                if (player.getLocation().distance(this.location) <= 20) return;
+
+                WrapperPlayServerDestroyEntities packet = new WrapperPlayServerDestroyEntities(this.entityID);
+                lib.getPlayerManager().sendPacket(player, packet);
+            });
+        });
+
+        if (this.renderMode == RenderMode.VIEWER_LIST) {
+            return;
+        }
 
         if (this.renderMode == RenderMode.ALL) {
             this.addAllViewers(new ArrayList<>(Bukkit.getOnlinePlayers()));
-        } else if (this.renderMode == RenderMode.NEARBY) {
-            this.location.getWorld().getNearbyEntities(this.location, nearbyEntityScanningDistance, nearbyEntityScanningDistance, nearbyEntityScanningDistance)
-                    .stream()
-                    .filter(entity -> entity instanceof Player)
-                    .forEach(entity -> this.viewers.add((Player) entity));
+            return;
+        }
+
+        if (this.renderMode == RenderMode.NEARBY) {
+            double radius = nearbyEntityScanningDistance;
+            getScheduler().runAtLocation(this.location, wt -> {
+                world.getNearbyEntities(this.location, radius, radius, radius)
+                        .stream()
+                        .filter(entity -> entity instanceof Player)
+                        .forEach(entity -> this.viewers.add((Player) entity));
+            });
         }
     }
 
     private void sendPacket(PacketWrapper<?> packet) {
         if (this.renderMode == RenderMode.NONE) return;
-        viewers.forEach(player -> HologramAPI.getPlayerManager().sendPacket(player, packet));
+        viewers.forEach(player -> lib.getPlayerManager().sendPacket(player, packet));
     }
+
+    public PlatformScheduler getScheduler() {
+        return lib.getScheduler();
+    }
+
+    public Display.Billboard getBillboard() {
+        return billboard;
+    }
+
+    public byte getTextOpacity() {
+        return textOpacity;
+    }
+
+    public double getNearbyEntityScanningDistance() {
+        return nearbyEntityScanningDistance;
+    }
+
+    public double getViewRange() {
+        return viewRange;
+    }
+
+    public HologramLib getLib() {
+        return lib;
+    }
+
+    public int getBackgroundColor() {
+        return backgroundColor;
+    }
+
+    public int getEntityID() {
+        return entityID;
+    }
+
+    public int getInterpolationDurationRotation() {
+        return interpolationDurationRotation;
+    }
+
+    public int getInterpolationDurationTransformation() {
+        return interpolationDurationTransformation;
+    }
+
+    public int getMaxLineWidth() {
+        return maxLineWidth;
+    }
+
+    public long getUpdateTaskPeriod() {
+        return updateTaskPeriod;
+    }
+
+    public List<Player> getViewers() {
+        return viewers;
+    }
+
+    public Location getLocation() {
+        return location;
+    }
+
+    public Quaternion4f getLeftRotation() {
+        return leftRotation;
+    }
+
+    public Quaternion4f getRightRotation() {
+        return rightRotation;
+    }
+
+    public RenderMode getRenderMode() {
+        return renderMode;
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public TextDisplay.TextAlignment getAlignment() {
+        return alignment;
+    }
+
+    public WrappedTask getTask() {
+        return task;
+    }
+
 }

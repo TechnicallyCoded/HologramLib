@@ -1,13 +1,8 @@
-package com.maximde.hologramapi.hologram;
-
-import lombok.Getter;
-import lombok.Setter;
-import lombok.experimental.Accessors;
+package com.tcoded.hologramlib.hologram;
 
 import java.util.ArrayList;
 import java.util.List;
 
-@Getter
 public class TextAnimation {
 
     private final List<String> textFrames = new ArrayList<>();
@@ -16,13 +11,13 @@ public class TextAnimation {
      * The display will be updated every x ticks
      * 20 ticks = 1 second
      */
-    private @Setter @Accessors(chain = true) long speed = 20;
+    private long speed = 20;
 
     /**
      * Delay in ticks when the animation should start
      * 20 ticks = 1 second
      */
-    private @Setter @Accessors(chain = true) long delay = 20;
+    private long delay = 20;
 
 
     public TextAnimation() {}
@@ -58,6 +53,18 @@ public class TextAnimation {
     public TextAnimation clearFrames() {
         this.textFrames.clear();
         return this;
+    }
+
+    public List<String> getTextFrames() {
+        return textFrames;
+    }
+
+    public long getDelay() {
+        return delay;
+    }
+
+    public long getSpeed() {
+        return speed;
     }
 
 }

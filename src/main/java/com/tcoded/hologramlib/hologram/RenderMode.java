@@ -1,4 +1,4 @@
-package com.maximde.hologramapi.hologram;
+package com.tcoded.hologramlib.hologram;
 
 public enum RenderMode {
     NONE,

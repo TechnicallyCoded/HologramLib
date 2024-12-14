@@ -1,10 +1,5 @@
-package com.maximde.hologramapi.utils;
+package com.tcoded.hologramlib.utils;
 
-import lombok.Getter;
-import lombok.Setter;
-
-@Getter
-@Setter
 public class Vector3F {
     public final float x;
     public final float y;
@@ -42,9 +37,6 @@ public class Vector3F {
     }
     public Vector3F add(Vector3F other) {
         return this.add(other.x, other.y, other.z);
-    }
-    public static Vector3F zero() {
-        return new Vector3F();
     }
 
     public boolean equals(Object obj) {

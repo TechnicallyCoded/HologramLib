@@ -1,24 +1,24 @@
-package com.maximde.hologramapi.hologram;
+package com.tcoded.hologramlib.hologram;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
+import com.tcoded.folialib.wrapper.task.WrappedTask;
 import org.bukkit.Location;
 import org.bukkit.plugin.Plugin;
-import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
-@AllArgsConstructor
 public class HologramManager {
 
     private final Plugin plugin;
 
-    @Getter
-    private final Map<TextHologram, BukkitRunnable> hologramAnimations = new ConcurrentHashMap<>();
+    private final Map<TextHologram, WrappedTask> hologramAnimations = new ConcurrentHashMap<>();
 
-    @Getter
     private final Map<String, TextHologram> hologramsMap = new ConcurrentHashMap<>();
+
+    public HologramManager(Plugin plugin) {
+        this.plugin = plugin;
+    }
 
     public List<TextHologram> getHolograms() {
         return new ArrayList<>(this.hologramsMap.values());
@@ -56,21 +56,25 @@ public class HologramManager {
     }
 
     public void cancelAnimation(TextHologram hologram) {
-        Optional.ofNullable(hologramAnimations.remove(hologram)).ifPresent(BukkitRunnable::cancel);
+        Optional.ofNullable(hologramAnimations.remove(hologram)).ifPresent(WrappedTask::cancel);
     }
 
-    private BukkitRunnable animateHologram(TextHologram hologram, TextAnimation textAnimation) {
-        final BukkitRunnable animation = new BukkitRunnable() {
-            int currentFrame = 0;
-            public void run() {
-                if (textAnimation.getTextFrames().isEmpty()) return;
-                hologram.setMiniMessageText(textAnimation.getTextFrames().get(currentFrame));
-                hologram.update();
-                currentFrame = (currentFrame + 1) % textAnimation.getTextFrames().size();
-            }
-        };
+    private WrappedTask animateHologram(TextHologram hologram, TextAnimation textAnimation) {
+        AtomicInteger currentFrame = new AtomicInteger(0);
 
-        animation.runTaskTimerAsynchronously(this.plugin, textAnimation.getDelay(), textAnimation.getSpeed());
-        return animation;
+        return hologram.getScheduler().runTimerAsync(() -> {
+                if (textAnimation.getTextFrames().isEmpty()) return;
+                hologram.setMiniMessageText(textAnimation.getTextFrames().get(currentFrame.get()));
+                hologram.update();
+                currentFrame.set((currentFrame.get() + 1) % textAnimation.getTextFrames().size());
+        }, textAnimation.getDelay(), textAnimation.getSpeed());
+    }
+
+    public Map<String, TextHologram> getHologramsMap() {
+        return hologramsMap;
+    }
+
+    public Map<TextHologram, WrappedTask> getHologramAnimations() {
+        return hologramAnimations;
     }
 }
