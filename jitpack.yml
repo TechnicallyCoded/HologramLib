@@ -1,7 +1,7 @@
 before_install:
-  - sdk install java 17.0.7-zulu
-  - sdk use java 17.0.7-zulu
+  - sdk install java 21.0.5-temurin
+  - sdk use java 21.0.5-temurin
   - sdk update
 
 jdk:
-  - openjdk17
+  - openjdk21
