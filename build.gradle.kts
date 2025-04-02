@@ -2,11 +2,10 @@ plugins {
     id("java")
     id("maven-publish")
     id("com.gradleup.shadow") version "9.0.0-beta11"
-    id("io.papermc.paperweight.userdev") version "2.0.0-beta.16"
 }
 
 group = "com.tcoded.hologramlib"
-version = "1.0.0"
+version = "1.1.0"
 
 allprojects {
     repositories {
@@ -52,11 +51,10 @@ subprojects {
 }
 
 dependencies {
-    paperweight.foliaDevBundle("1.20.4-R0.1-SNAPSHOT")
-
     implementation("com.github.technicallycoded:FoliaLib:0.4.4")
     implementation(project(":common"))
     implementation(project(":nms_1_20_4", "reobf"))
+    implementation(project(":nms_1_21_4", "shadow"))
 
 
     compileOnly("net.kyori:adventure-text-minimessage:4.17.0")

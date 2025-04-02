@@ -1,4 +1,5 @@
 rootProject.name = 'HologramLib'
 include 'nms_1_20_4'
+include 'nms_1_21_4'
 include 'common'
 
