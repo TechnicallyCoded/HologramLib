@@ -54,8 +54,17 @@ public abstract class TextHologram <InternalIdType> {
     }
 
     public void spawn(List<Player> players) {
+        SyncCatcher.ensureAsync();
+
         this.sendSpawnPacket(players);
         this.sendMetaPacket(players);
+    }
+
+    public void updateMeta() {
+        SyncCatcher.ensureAsync();
+
+        List<Player> viewers = this.tracker.getAllViewingPlayers();
+        sendMetaPacket(viewers);
     }
 
     public void kill(List<Player> players) {
