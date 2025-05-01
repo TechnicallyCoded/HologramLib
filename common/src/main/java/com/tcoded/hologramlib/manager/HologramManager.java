@@ -1,6 +1,7 @@
 package com.tcoded.hologramlib.manager;
 
 import com.tcoded.hologramlib.hologram.TextHologram;
+import com.tcoded.hologramlib.hologram.TextHologramLine;
 import com.tcoded.hologramlib.utils.HologramLookupCache;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -28,7 +29,7 @@ public abstract class HologramManager <InternalIdType> {
 
     protected abstract int nextEntityId(World world);
 
-    protected abstract TextHologram<InternalIdType> createNms(InternalIdType id);
+    protected abstract TextHologramLine createNmsLine();
 
     protected abstract Location getPosUnsafe(Player player);
 
@@ -55,22 +56,32 @@ public abstract class HologramManager <InternalIdType> {
     }
 
     /**
+     * Creates a new line
+     * @return TextHologramLine
+     */
+    public TextHologramLine createLine() {
+        return createNmsLine();
+    }
+
+    /**
      * @param id Hologram ID
      * @param silentFail Handle duplicate IDs gracefully
      * @throws IllegalStateException If a hologram with this ID already exits && silentFail is false
      * @return TextHologram or null
      */
     private TextHologram<InternalIdType> create(InternalIdType id, boolean silentFail) {
-        TextHologram<InternalIdType> nmsHolo = createNms(id);
+        TextHologram<InternalIdType> hologram = new TextHologram<>(id);
+        TextHologramLine defaultLine = createNmsLine();
+        hologram.addLine(defaultLine);
 
-        TextHologram<InternalIdType> result = this.hologramsMap.compute(id, (id2, prevValue) -> prevValue == null ? nmsHolo : prevValue);
-        if (result != nmsHolo) {
+        TextHologram<InternalIdType> result = this.hologramsMap.compute(id, (id2, prevValue) -> prevValue == null ? hologram : prevValue);
+        if (result != hologram) {
             if (silentFail) return null;
             else throw new IllegalStateException("Hologram with that ID already exists");
         }
 
-        nmsHolo.hookLocationUpdate(this::onHoloPositionUpdate);
-        return nmsHolo;
+        hologram.hookLocationUpdate(this::onHoloPositionUpdate);
+        return hologram;
     }
 
     private void onHoloPositionUpdate(TextHologram<?> hologram, Location from, Location to) {

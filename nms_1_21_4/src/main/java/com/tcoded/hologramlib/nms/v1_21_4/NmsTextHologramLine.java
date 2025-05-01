@@ -1,8 +1,9 @@
-package com.tcoded.hologramlib.nms.v1_20_4;
+package com.tcoded.hologramlib.nms.v1_21_4;
 
 import com.google.common.collect.ImmutableList;
 import com.mojang.math.Transformation;
 import com.tcoded.hologramlib.HologramLib;
+import com.tcoded.hologramlib.hologram.TextHologramLine;
 import com.tcoded.hologramlib.hologram.meta.BillboardConstraints;
 import com.tcoded.hologramlib.hologram.meta.TextDisplayMeta;
 import com.tcoded.hologramlib.hologram.TextHologram;
@@ -16,9 +17,11 @@ import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.util.Brightness;
 import net.minecraft.world.entity.Display;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.PositionMoveRotation;
+import net.minecraft.world.entity.Relative;
 import net.minecraft.world.phys.Vec3;
 import org.bukkit.Location;
-import org.bukkit.craftbukkit.v1_20_R3.entity.CraftPlayer;
+import org.bukkit.craftbukkit.entity.CraftPlayer;
 import org.bukkit.entity.Player;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
@@ -27,19 +30,19 @@ import java.util.Collection;
 import java.util.List;
 import java.util.logging.Level;
 
-public class NmsTextHologram <T> extends TextHologram<T> {
+public class NmsTextHologramLine extends TextHologramLine {
 
     private final Display.TextDisplay parent;
 
-    public static <T> NmsTextHologram<T> create(T id) {
+    public static NmsTextHologramLine create() {
         // Accepts null values
         // noinspection DataFlowIssue
         Display.TextDisplay parent = new Display.TextDisplay(EntityType.TEXT_DISPLAY, null);
-        return new NmsTextHologram<>(id, parent);
+        return new NmsTextHologramLine(parent);
     }
 
-    public NmsTextHologram(T id, Display.TextDisplay parent) {
-        super(id, parent.getId());
+    public NmsTextHologramLine(Display.TextDisplay parent) {
+        super(parent.getId());
         this.parent = parent;
     }
 
@@ -47,8 +50,8 @@ public class NmsTextHologram <T> extends TextHologram<T> {
     public void sendSpawnPacket(Collection<Player> players) {
         Location loc = getLocation();
 
-        ClientboundAddEntityPacket packet = new ClientboundAddEntityPacket(this.getId(),
-                this.getUuid(),
+        ClientboundAddEntityPacket packet = new ClientboundAddEntityPacket(this.getEntityId(),
+                this.getEntityUuid(),
                 loc.getX(),
                 loc.getY(),
                 loc.getZ(),
@@ -107,23 +110,28 @@ public class NmsTextHologram <T> extends TextHologram<T> {
             return;
         }
 
-        ClientboundSetEntityDataPacket packet = new ClientboundSetEntityDataPacket(this.getId(), dataValues);
+        ClientboundSetEntityDataPacket packet = new ClientboundSetEntityDataPacket(this.getEntityId(), dataValues);
         sendPacket(players, packet);
     }
 
     @Override
     public void sendKillPacket(Collection<Player> players) {
         ClientboundRemoveEntitiesPacket packet = new ClientboundRemoveEntitiesPacket(
-                IntList.of(this.getId())
+                IntList.of(this.getEntityId())
         );
         sendPacket(players, packet);
     }
 
     @Override
     public void sendTeleportPacket(Collection<Player> players, Location location) {
-        this.parent.setPos(location.getX(), location.getY(), location.getZ());
+        Vec3 prePos = this.parent.position();
+        Vec3 newPos = new Vec3(location.getX(), location.getY(), location.getZ());
+        Vec3 delta = newPos.subtract(prePos);
+        PositionMoveRotation posMovRot = new PositionMoveRotation(newPos, delta, this.parent.getYRot(), this.parent.getXRot());
 
-        ClientboundTeleportEntityPacket packet = new ClientboundTeleportEntityPacket(this.parent);
+        this.parent.setPos(newPos);
+
+        ClientboundTeleportEntityPacket packet = new ClientboundTeleportEntityPacket(this.getEntityId(), posMovRot, Relative.ALL, this.parent.onGround());
         sendPacket(players, packet);
     }
 

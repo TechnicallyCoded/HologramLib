@@ -1,129 +1,123 @@
 package com.tcoded.hologramlib.hologram;
 
-import com.tcoded.hologramlib.hologram.meta.TextDisplayMeta;
-import com.tcoded.folialib.wrapper.task.WrappedTask;
+import com.google.common.collect.ImmutableList;
 import com.tcoded.hologramlib.tracker.HologramPlayerTracker;
 import com.tcoded.hologramlib.types.LocationUpdateHook;
 import com.tcoded.hologramlib.utils.SyncCatcher;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
-import org.bukkit.entity.TextDisplay;
+import org.jetbrains.annotations.ApiStatus;
 
 import java.util.*;
+import java.util.concurrent.locks.ReentrantLock;
 
 
-public abstract class TextHologram <InternalIdType> {
+public class TextHologram <InternalIdType> {
 
-    private final int id;
     private final InternalIdType internalId;
-    private final UUID uuid;
-    private final TextDisplayMeta meta;
     private final HologramPlayerTracker tracker;
+
+    // The lines of the hologram. List needs to be rebuilt for any edit to structure.
+    private ImmutableList<TextHologramLine> lines;
+    private ReentrantLock linesLock;
 
     private boolean visible;
     private float trackingDistance;
-    private Location location;
 
-    private WrappedTask task;
+    private Location location;
+    private boolean locationSynced;
+    private Location lastSyncedLocation;
     private LocationUpdateHook locationUpdateHook;
 
-    public TextHologram(InternalIdType internalId, int id) {
+    public TextHologram(InternalIdType internalId) {
         this.internalId = internalId;
-        this.id = id;
-        this.uuid = UUID.randomUUID();
-        this.meta = new TextDisplayMeta();
         this.tracker = new HologramPlayerTracker(this);
-        this.trackingDistance = 40.0f;
+
+        this.lines = ImmutableList.of();
+        this.linesLock = new ReentrantLock();
+
         this.visible = false;
+        this.trackingDistance = 40.0f;
+
+        this.location = null;
+        this.locationSynced = false;
+        this.lastSyncedLocation = null;
+        this.locationUpdateHook = null;
     }
 
     public void show() {
         SyncCatcher.ensureAsync();
+
+        if (this.visible) {
+            throw new IllegalStateException("Hologram already visible");
+        }
+
+        if (this.location == null) {
+            throw new IllegalStateException("Hologram location is null");
+        }
+
+        if (!this.locationSynced) {
+            this.syncLocation(); // ignore result since spawn packets will be sent anyway
+        }
+
         this.visible = true;
 
         List<Player> viewers = this.tracker.getAllViewingPlayers();
-        sendSpawnPacket(viewers);
-        sendMetaPacket(viewers);
+        this.show(viewers);
+    }
+
+    @ApiStatus.Internal
+    public void show(List<Player> players) {
+        SyncCatcher.ensureAsync();
+
+        this.sendSpawnPackets(players);
+        this.sendMetaPackets(players);
     }
 
     public void hide() {
         SyncCatcher.ensureAsync();
 
+        if (!this.visible) {
+            throw new IllegalStateException("Hologram already hidden");
+        }
+
+        this.visible = false;
+
         List<Player> viewers = this.tracker.getAllViewingPlayers();
-        sendKillPacket(viewers);
+        this.hide(viewers);
     }
 
-    public void spawn(List<Player> players) {
-        SyncCatcher.ensureAsync();
-
-        this.sendSpawnPacket(players);
-        this.sendMetaPacket(players);
+    @ApiStatus.Internal
+    public void hide(List<Player> players) {
+        this.sendKillPackets(players);
     }
 
     public void updateMeta() {
         SyncCatcher.ensureAsync();
 
         List<Player> viewers = this.tracker.getAllViewingPlayers();
-        sendMetaPacket(viewers);
-    }
-
-    public void kill(List<Player> players) {
-        this.sendKillPacket(players);
-    }
-
-    /**
-     * Use {@link TextHologram#spawn(List)} instead!
-     */
-    public abstract void sendSpawnPacket(Collection<Player> players);
-
-    public abstract void sendSetPassengerPacket(Collection<Player> players, int baseEntityId);
-
-    public abstract void sendMetaPacket(Collection<Player> players);
-
-    public TextDisplayMeta getMeta() {
-        return this.meta;
-    }
-
-    private void setAlignment(TextDisplay.TextAlignment alignment) {
-        switch (alignment) {
-            case LEFT -> getMeta().setAlignLeft(true);
-            case RIGHT -> getMeta().setAlignRight(true);
-        }
-    }
-
-    /**
-     * Use HologramManager#remove(TextHologram.class); instead!
-     * Only if you want to manage the holograms yourself and don't want to use the animation system use this
-     */
-    public abstract void sendKillPacket(Collection<Player> players);
-
-    protected abstract void sendTeleportPacket(Collection<Player> players, Location location);
-
-    public int getId() {
-        return this.id;
-    }
-
-    public Location getLocation() {
-        return location;
-    }
-
-    public WrappedTask getTask() {
-        return task;
-    }
-
-    protected UUID getUuid() {
-        return this.uuid;
+        sendMetaPackets(viewers);
     }
 
     public InternalIdType getInternalId() {
         return this.internalId;
     }
 
+    public Location getLocation() {
+        return location.clone();
+    }
+
     public void setLocation(Location location) {
-        SyncCatcher.ensureAsync();
-        Location from = this.location;
-        this.location = location;
-        if (this.locationUpdateHook != null) this.locationUpdateHook.handle(this, from, location);
+        boolean holoVisible = this.visible; // thread safety: consistency
+        if (holoVisible) SyncCatcher.ensureAsync();
+
+        this.location = location.clone();
+
+        // If the hologram is visible, we need to sync the location
+        // If the location was not previously synced, we need to teleport the hologram lines
+        if (holoVisible && this.syncLocation()) {
+            this.sendTeleportPackets(this.tracker.getAllViewingPlayers());
+        }
     }
 
     public void hookLocationUpdate(LocationUpdateHook hook) {
@@ -147,6 +141,147 @@ public abstract class TextHologram <InternalIdType> {
     @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     public boolean isVisible() {
         return this.visible;
+    }
+
+    public List<TextHologramLine> getLines() {
+        try {
+            this.linesLock.lock();
+            return this.lines;
+        } finally {
+            this.linesLock.unlock();
+        }
+    }
+
+    public TextHologramLine getLine(int index) {
+        try {
+            this.linesLock.lock();
+
+            if (index < 0 || index >= this.lines.size()) {
+                throw new IndexOutOfBoundsException("Index out of bounds");
+            }
+
+            return this.lines.get(index);
+        } finally {
+            this.linesLock.unlock();
+        }
+    }
+
+    public void addLine(TextHologramLine line) {
+        boolean holoVisible = this.visible; // thread safety: consistency
+        if (holoVisible) SyncCatcher.ensureAsync();
+
+        ImmutableList.Builder<TextHologramLine> linesBuilder = ImmutableList.builder();
+        linesBuilder.addAll(this.lines);
+        linesBuilder.add(line);
+
+        try {
+            this.linesLock.lock();
+
+            this.lines = linesBuilder.build();
+
+            if (holoVisible) {
+                this.syncLineLocations();
+                this.sendTeleportPackets(this.tracker.getAllViewingPlayers());
+            }
+        } finally {
+            this.linesLock.unlock();
+        }
+    }
+
+    public void removeLine(int index) {
+        boolean holoVisible = this.visible; // thread safety: consistency
+        if (holoVisible) SyncCatcher.ensureAsync();
+
+        try {
+            this.linesLock.lock();
+
+            if (index < 0 || index >= this.lines.size()) {
+                throw new IndexOutOfBoundsException("Index out of bounds");
+            }
+
+            ImmutableList.Builder<TextHologramLine> linesBuilder = ImmutableList.builder();
+            for (int i = 0; i < this.lines.size(); i++) {
+                if (i != index) {
+                    linesBuilder.add(this.lines.get(i));
+                }
+            }
+
+            this.lines = linesBuilder.build();
+
+            if (holoVisible) {
+                this.sendTeleportPackets(this.tracker.getAllViewingPlayers());
+                this.syncLineLocations();
+            }
+        } finally {
+            this.linesLock.unlock();
+        }
+
+        if (holoVisible) this.sendTeleportPackets(this.tracker.getAllViewingPlayers());
+    }
+
+    /**
+     * @return true if the location was updated, false if it was already synced
+     */
+    private boolean syncLocation() {
+        if (this.location == null) {
+            throw new IllegalStateException("Hologram location is null");
+        }
+
+        Location from = this.lastSyncedLocation;
+        Location to = this.location;
+
+        boolean updated = false;
+        if (!Objects.equals(from, to)) {
+            this.syncLineLocations();
+            this.locationUpdateHook.handle(this, from, to);
+            updated = true;
+        }
+
+        this.lastSyncedLocation = this.location;
+        this.locationSynced = true;
+        return updated;
+    }
+
+    private void syncLineLocations() {
+        try {
+            this.linesLock.lock();
+
+            ImmutableList<TextHologramLine> linesRef = this.lines;
+
+            Location currentLocation = this.location.clone();
+            for (int i = linesRef.size() - 1; i >= 0; i--) {
+                TextHologramLine line = linesRef.get(i);
+                line.setLocation(currentLocation);
+
+                currentLocation.add(0, line.getHeight().orElse(HologramLine.DEFAULT_LINE_HEIGHT), 0);
+            }
+        } finally {
+            this.linesLock.unlock();
+        }
+    }
+
+    private void sendSpawnPackets(List<Player> players) {
+        for (TextHologramLine line : this.lines) {
+            line.sendSpawnPacket(players);
+        }
+    }
+
+    private void sendMetaPackets(List<Player> players) {
+        for (TextHologramLine line : this.lines) {
+            line.sendMetaPacket(players);
+        }
+    }
+
+    private void sendTeleportPackets(List<Player> players) {
+        for (TextHologramLine line : this.lines) {
+            line.sendTeleportPackets(players);
+        }
+    }
+
+    private void sendKillPackets(List<Player> players) {
+        for (TextHologramLine line : this.lines) {
+            line.sendKillPacket(players);
+        }
     }
 
 }

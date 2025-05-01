@@ -10,8 +10,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.WeakHashMap;
-import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 
 public class HologramPlayerTracker {
 
@@ -33,12 +31,12 @@ public class HologramPlayerTracker {
 
     public void addViewer(PlayerHologramTracker holoTracker) {
         this.viewers.add(holoTracker);
-        updatePlayer(holoTracker, TextHologram::spawn);
+        updatePlayer(holoTracker, TextHologram::show);
     }
 
     public void removeViewer(PlayerHologramTracker holoTracker) {
         this.viewers.remove(holoTracker);
-        updatePlayer(holoTracker, TextHologram::kill);
+        updatePlayer(holoTracker, TextHologram::hide);
     }
 
     public boolean isViewing(PlayerHologramTracker playerHoloTracker) {
