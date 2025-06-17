@@ -1,20 +1,16 @@
 plugins {
     id("java")
     id("maven-publish")
-    id("com.gradleup.shadow") version "9.0.0-beta11"
+    id("com.gradleup.shadow") version "9.0.0-beta14"
 }
 
-group = "com.tcoded.hologramlib"
+group = "com.tcoded"
 version = "1.2.0"
 
 allprojects {
     repositories {
         maven { url = uri("https://repo.papermc.io/repository/maven-public/") }
         mavenCentral()
-        //    maven {
-        //        name = "spigotmc-repo"
-        //        url = "https://hub.spigotmc.org/nexus/content/repositories/snapshots/"
-        //    }
 
         maven {
             name = "papermc"
@@ -28,17 +24,18 @@ allprojects {
         maven { url = uri("https://repo.codemc.io/repository/maven-releases/") }
 
         maven { url = uri("https://jitpack.io") }
+        maven { url = uri("https://repo.tcoded.com/releases/") }
     }
 }
 
 subprojects {
     apply(plugin = "java")
 
-    project.group = "com.tcoded.hologramlib"
+    project.group = "com.tcoded"
     project.version = rootProject.version
 
     dependencies {
-        compileOnly("com.github.technicallycoded:FoliaLib:0.4.4")
+        compileOnly("com.tcoded:FoliaLib:0.5.1")
         compileOnly("net.kyori:adventure-text-minimessage:4.17.0")
 
         testImplementation(platform("org.junit:junit-bom:5.10.0"))
@@ -51,7 +48,7 @@ subprojects {
 }
 
 dependencies {
-    implementation("com.github.technicallycoded:FoliaLib:0.4.4")
+    compileOnly("com.tcoded:FoliaLib:0.5.1")
     implementation(project(":common"))
     implementation(project(":nms_1_20_4", "reobf"))
     implementation(project(":nms_1_21_4", "shadow"))
@@ -99,13 +96,9 @@ tasks.assemble {
     dependsOn(tasks.shadowJar)
 }
 
-tasks.build {
-    dependsOn(tasks.publishToMavenLocal)
-}
-
 publishing {
     publications {
-        create<MavenPublication>("maven") {
+        create<MavenPublication>("mavenJavaLocal") {
             groupId = rootProject.group.toString()
             artifactId = rootProject.name
             version = rootProject.version.toString()
@@ -115,6 +108,38 @@ publishing {
     }
 }
 
-tasks.named("publishMavenPublicationToMavenLocal") {
+tasks.named("publishMavenJavaLocalPublicationToMavenLocal") {
     dependsOn(tasks.shadowJar, tasks.jar)
+}
+
+val enablePublishing: Boolean = project.findProperty("enableUploadPublish")?.toString()?.toBoolean() == true
+
+if (enablePublishing) {
+    publishing {
+        repositories {
+            maven {
+                name = "reposilite"
+                url = uri("https://repo.tcoded.com/releases")
+
+                credentials {
+                    username = project.findProperty("REPOSILITE_USER")?.toString()
+                        ?: System.getenv("REPOSILITE_USER")
+                                ?: error("REPOSILITE_USER property or environment variable is not set")
+                    password = project.findProperty("REPOSILITE_PASS")?.toString()
+                        ?: System.getenv("REPOSILITE_PASS")
+                                ?: error("REPOSILITE_PASS property or environment variable is not set")
+                }
+
+                authentication {
+                    register<BasicAuthentication>("basic")
+                }
+            }
+        }
+    }
+
+    tasks.named("publishMavenJavaLocalPublicationToReposiliteRepository") {
+        dependsOn(tasks.jar)
+        dependsOn(tasks.shadowJar)
+    }
+
 }
