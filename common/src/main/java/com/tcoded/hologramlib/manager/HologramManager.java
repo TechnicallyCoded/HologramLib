@@ -6,6 +6,7 @@ import com.tcoded.hologramlib.utils.HologramLookupCache;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -95,11 +96,11 @@ public abstract class HologramManager <InternalIdType> {
 
     public void killAndRemove(InternalIdType id) {
         Optional.ofNullable(this.hologramsMap.remove(id))
-                .ifPresent(TextHologram::hide); // despawn for all viewers
+                .ifPresent(this::tryHide); // despawn for all viewers
     }
 
     public void killAndRemoveAll() {
-        this.hologramsMap.values().forEach(TextHologram::hide); // despawn for all viewers
+        this.hologramsMap.values().forEach(this::tryHide); // despawn for all viewers
         this.hologramsMap.clear();
     }
 
@@ -109,6 +110,10 @@ public abstract class HologramManager <InternalIdType> {
 
     public void withPlayerManager(PlayerManager playerManager) {
         this.playerManager = playerManager;
+    }
+
+    private void tryHide(@NotNull TextHologram<InternalIdType> hologram) {
+        if (hologram.isVisible()) hologram.hide();
     }
 
 }
