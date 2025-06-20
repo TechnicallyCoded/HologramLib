@@ -3,6 +3,7 @@ package com.tcoded.hologramlib.nms.v1_20_4;
 import com.google.common.collect.ImmutableList;
 import com.mojang.math.Transformation;
 import com.tcoded.hologramlib.HologramLib;
+import com.tcoded.hologramlib.PlaceholderHandler;
 import com.tcoded.hologramlib.hologram.TextHologramLine;
 import com.tcoded.hologramlib.hologram.meta.BillboardConstraints;
 import com.tcoded.hologramlib.hologram.meta.TextDisplayMeta;
@@ -10,6 +11,8 @@ import com.tcoded.hologramlib.types.math.Quaternion4F;
 import com.tcoded.hologramlib.types.math.Vector3F;
 import io.papermc.paper.adventure.PaperAdventure;
 import it.unimi.dsi.fastutil.ints.IntList;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.TextReplacementConfig;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.*;
 import net.minecraft.network.syncher.SynchedEntityData;
@@ -20,26 +23,28 @@ import net.minecraft.world.phys.Vec3;
 import org.bukkit.Location;
 import org.bukkit.craftbukkit.v1_20_R3.entity.CraftPlayer;
 import org.bukkit.entity.Player;
+import org.jetbrains.annotations.Nullable;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.function.BiConsumer;
 import java.util.logging.Level;
 
 public class NmsTextHologramLine extends TextHologramLine {
 
     private final Display.TextDisplay parent;
 
-    public static NmsTextHologramLine create() {
+    public static NmsTextHologramLine create(PlaceholderHandler placeholderHandler) {
         // Accepts null values
         // noinspection DataFlowIssue
         Display.TextDisplay parent = new Display.TextDisplay(EntityType.TEXT_DISPLAY, null);
-        return new NmsTextHologramLine(parent);
+        return new NmsTextHologramLine(parent, placeholderHandler);
     }
 
-    public NmsTextHologramLine(Display.TextDisplay parent) {
-        super(parent.getId());
+    public NmsTextHologramLine(Display.TextDisplay parent, PlaceholderHandler placeholderHandler) {
+        super(parent.getId(), placeholderHandler);
         this.parent = parent;
     }
 
@@ -72,10 +77,10 @@ public class NmsTextHologramLine extends TextHologramLine {
     }
 
     @Override
-    public void sendMetaPacket(Collection<Player> players) {
+    public void sendMetaPacket(Collection<Player> players, @Nullable BiConsumer<Player, TextReplacementConfig.Builder> textParser) {
         TextDisplayMeta meta = this.getMeta();
+        Component text = meta.getText();
 
-        if (meta.getText() != null) this.setNmsText(PaperAdventure.asVanilla(meta.getText()));
         if (meta.getLineWidth() >= 0) this.setNmsLineWidth(meta.getLineWidth());
         if (meta.getBackgroundColor() >= 0) this.setNmsBackgroundColor(meta.getBackgroundColor());
         if (meta.getTextOpacity() >= 0) this.setNmsTextOpacity(meta.getTextOpacity());
@@ -101,14 +106,47 @@ public class NmsTextHologramLine extends TextHologramLine {
         if (meta.getHeight() >= 0) this.setNmsHeight(meta.getHeight());
         if (meta.getGlowColorOverride() >= 0) this.setNmsGlowColorOverride(meta.getGlowColorOverride());
 
+        // Send the same text to all players
+        if (textParser == null) {
+            if (meta.getText() != null) this.setNmsText(PaperAdventure.asVanilla(meta.getText()));
+
+            List<SynchedEntityData.DataValue<?>> dataValues = buildDataValues();
+            if (dataValues == null) return;
+
+            ClientboundSetEntityDataPacket packet = new ClientboundSetEntityDataPacket(this.getEntityId(), dataValues);
+            sendPacket(players, packet);
+        }
+        // If textParse is provided, it will be used to parse the text for each player individually
+        else {
+            sendIndividual(players, text, textParser);
+        }
+    }
+
+    private void sendIndividual(Collection<Player> players, Component text, BiConsumer<Player, TextReplacementConfig.Builder> textParser) {
+        for (Player player : players) {
+            if (!player.isOnline()) {
+                HologramLib.logger().warning("Player {NAME} is not online, cannot send packet".replace("{NAME}", player.getName()));
+                continue;
+            }
+
+            Component parsedText = text.replaceText(b -> textParser.accept(player, b));
+            this.setNmsText(PaperAdventure.asVanilla(parsedText));
+
+            List<SynchedEntityData.DataValue<?>> dataValues = buildDataValues();
+            if (dataValues == null) return;
+
+            ClientboundSetEntityDataPacket packet = new ClientboundSetEntityDataPacket(this.getEntityId(), dataValues);
+            sendPacket(player, packet);
+        }
+    }
+
+    private @Nullable List<SynchedEntityData.DataValue<?>> buildDataValues() {
         List<SynchedEntityData.DataValue<?>> dataValues = this.parent.getEntityData().getNonDefaultValues();
         if (dataValues == null || dataValues.isEmpty()) {
             HologramLib.logger().warning("No data values to send");
-            return;
+            return null;
         }
-
-        ClientboundSetEntityDataPacket packet = new ClientboundSetEntityDataPacket(this.getEntityId(), dataValues);
-        sendPacket(players, packet);
+        return dataValues;
     }
 
     @Override
@@ -129,13 +167,17 @@ public class NmsTextHologramLine extends TextHologramLine {
 
     private static void sendPacket(Collection<Player> players, Packet<ClientGamePacketListener> packet) {
         for (Player player : players) {
-            if (!player.isOnline()) {
-                HologramLib.logger().warning("Player {NAME} is not online, cannot send packet".replace("{NAME}", player.getName()));
-                continue;
-            }
-
-            ((CraftPlayer) player).getHandle().connection.send(packet);
+            sendPacket(player, packet);
         }
+    }
+
+    private static void sendPacket(Player player, Packet<ClientGamePacketListener> packet) {
+        if (!player.isOnline()) {
+            HologramLib.logger().warning("Player {NAME} is not online, cannot send packet".replace("{NAME}", player.getName()));
+            return;
+        }
+
+        ((CraftPlayer) player).getHandle().connection.send(packet);
     }
 
     private void setNmsText(net.minecraft.network.chat.Component text) {

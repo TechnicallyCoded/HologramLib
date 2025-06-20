@@ -1,5 +1,6 @@
 package com.tcoded.hologramlib.hologram;
 
+import com.tcoded.hologramlib.PlaceholderHandler;
 import com.tcoded.hologramlib.hologram.meta.TextDisplayMeta;
 import org.bukkit.entity.TextDisplay;
 
@@ -7,8 +8,8 @@ public abstract class TextHologramLine extends HologramLine {
 
     private final TextDisplayMeta meta;
 
-    public TextHologramLine(int entityId) {
-        super(entityId);
+    public TextHologramLine(int entityId, PlaceholderHandler placeholderHandler) {
+        super(entityId, placeholderHandler);
         this.meta = new TextDisplayMeta();
     }
 

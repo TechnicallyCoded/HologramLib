@@ -1,5 +1,7 @@
 package com.tcoded.hologramlib.manager;
 
+import com.tcoded.hologramlib.HologramLib;
+import com.tcoded.hologramlib.PlaceholderHandler;
 import com.tcoded.hologramlib.hologram.TextHologram;
 import com.tcoded.hologramlib.hologram.TextHologramLine;
 import com.tcoded.hologramlib.utils.HologramLookupCache;
@@ -15,12 +17,14 @@ import java.util.concurrent.ConcurrentHashMap;
 @SuppressWarnings("unused")
 public abstract class HologramManager <InternalIdType> {
 
+    private final HologramLib<?> lib;
     private final Map<InternalIdType, TextHologram<InternalIdType>> hologramsMap;
 
     private HologramLookupCache cache;
     private PlayerManager playerManager;
 
-    protected HologramManager() {
+    protected HologramManager(HologramLib<?> lib) {
+        this.lib = lib;
         this.hologramsMap = new ConcurrentHashMap<>();
     }
 
@@ -30,7 +34,7 @@ public abstract class HologramManager <InternalIdType> {
 
     protected abstract int nextEntityId(World world);
 
-    protected abstract TextHologramLine createNmsLine();
+    protected abstract TextHologramLine createNmsLine(PlaceholderHandler placeholderHandler);
 
     protected abstract Location getPosUnsafe(Player player);
 
@@ -61,7 +65,7 @@ public abstract class HologramManager <InternalIdType> {
      * @return TextHologramLine
      */
     public TextHologramLine createLine() {
-        return createNmsLine();
+        return createNmsLine(this.lib.getPlaceholderHandler());
     }
 
     /**
@@ -72,7 +76,7 @@ public abstract class HologramManager <InternalIdType> {
      */
     private TextHologram<InternalIdType> create(InternalIdType id, boolean silentFail) {
         TextHologram<InternalIdType> hologram = new TextHologram<>(id);
-        TextHologramLine defaultLine = createNmsLine();
+        TextHologramLine defaultLine = createLine();
         hologram.addLine(defaultLine);
 
         TextHologram<InternalIdType> result = this.hologramsMap.compute(id, (id2, prevValue) -> prevValue == null ? hologram : prevValue);

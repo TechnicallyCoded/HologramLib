@@ -1,6 +1,7 @@
 package com.tcoded.hologramlib.nms.v1_21_4;
 
 import com.tcoded.hologramlib.HologramLib;
+import com.tcoded.hologramlib.PlaceholderHandler;
 import com.tcoded.hologramlib.hologram.TextHologramLine;
 import com.tcoded.hologramlib.manager.HologramManager;
 import net.minecraft.world.entity.Entity;
@@ -13,7 +14,7 @@ import org.bukkit.entity.Player;
 public class NmsHologramManager <T> extends HologramManager<T> {
 
     public NmsHologramManager(HologramLib<T> lib) {
-        super();
+        super(lib);
     }
 
     @Override
@@ -22,8 +23,8 @@ public class NmsHologramManager <T> extends HologramManager<T> {
     }
 
     @Override
-    protected TextHologramLine createNmsLine() {
-        return NmsTextHologramLine.create();
+    protected TextHologramLine createNmsLine(PlaceholderHandler placeholderHandler) {
+        return NmsTextHologramLine.create(placeholderHandler);
     }
 
     // Might become Folia incompatible at some point, so we build

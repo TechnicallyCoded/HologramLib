@@ -1,13 +1,19 @@
 package com.tcoded.hologramlib.hologram;
 
+import com.tcoded.hologramlib.PlaceholderHandler;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.TextReplacementConfig;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.BiConsumer;
+import java.util.regex.Pattern;
 
 public abstract class HologramLine {
 
@@ -15,13 +21,15 @@ public abstract class HologramLine {
 
     private final int entityId;
     private final UUID uuid;
+    private final PlaceholderHandler placeholderHandler;
 
     private Location location;
     private Double height;
 
-    public HologramLine(int entityId) {
+    public HologramLine(int entityId, PlaceholderHandler placeholderHandler) {
         this.entityId = entityId;
         this.uuid = UUID.randomUUID();
+        this.placeholderHandler = placeholderHandler;
         this.location = null;
         this.height = null;
     }
@@ -57,7 +65,24 @@ public abstract class HologramLine {
 
     public abstract void sendSetPassengerPacket(Collection<Player> players, int baseEntityId);
 
-    public abstract void sendMetaPacket(Collection<Player> players);
+    public void sendMetaPacket(Collection<Player> players) {
+        Pattern pattern = placeholderHandler.getPattern();
+
+        if (pattern == null) {
+            sendMetaPacket(players, null);
+            return;
+        }
+
+        this.sendMetaPacket(players, (p, b) -> {
+            b.match(pattern).replacement((result, b2) ->
+                    Component.text(
+                            placeholderHandler.setPlaceholders(p, result.group(1))
+                    )
+            );
+        });
+    }
+
+    protected abstract void sendMetaPacket(Collection<Player> players, @Nullable BiConsumer<Player, TextReplacementConfig.Builder> textParser);
 
     /**
      * Use HologramManager#remove(TextHologram.class); instead!

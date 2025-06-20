@@ -38,6 +38,7 @@ public class HologramLib <InternalIdType> implements HologramLibShutdownExecutor
     private final Plugin plugin;
     private FoliaLib foliaLib;
     private final PlatformScheduler scheduler;
+    private PlaceholderHandler placeholderHandler;
 
     private HologramManager<InternalIdType> hologramManager;
     private PlayerManager playerManager;
@@ -53,6 +54,7 @@ public class HologramLib <InternalIdType> implements HologramLibShutdownExecutor
 
         this.foliaLib = new FoliaLib(plugin);
         this.scheduler = foliaLib.getScheduler();
+        this.placeholderHandler = PlaceholderHandler.createHandler();
 
         // Cache
         HologramLookupCache hologramLookupCache = new HologramLookupCache();
@@ -151,6 +153,10 @@ public class HologramLib <InternalIdType> implements HologramLibShutdownExecutor
 
     public PlayerManager getPlayerManager() {
         return playerManager;
+    }
+
+    public PlaceholderHandler getPlaceholderHandler() {
+        return placeholderHandler;
     }
 
 }

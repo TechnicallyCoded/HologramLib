@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "com.tcoded"
-version = "1.2.1"
+version = "1.3.0"
 
 allprojects {
     repositories {
@@ -25,6 +25,7 @@ allprojects {
 
         maven { url = uri("https://jitpack.io") }
         maven { url = uri("https://repo.tcoded.com/releases/") }
+        maven { url = uri("https://repo.extendedclip.com/releases/") }
     }
 }
 

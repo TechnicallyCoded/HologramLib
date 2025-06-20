@@ -1,6 +1,7 @@
 package com.tcoded.hologramlib.hologram;
 
 import com.google.common.collect.ImmutableList;
+import com.tcoded.hologramlib.PlaceholderHandler;
 import com.tcoded.hologramlib.tracker.HologramPlayerTracker;
 import com.tcoded.hologramlib.types.LocationUpdateHook;
 import com.tcoded.hologramlib.utils.SyncCatcher;
@@ -22,6 +23,8 @@ public class TextHologram <InternalIdType> {
     private ReentrantLock linesLock;
 
     private boolean visible;
+    private ReentrantLock visibleLock;
+
     private float trackingDistance;
 
     private Location location;
@@ -36,7 +39,9 @@ public class TextHologram <InternalIdType> {
         this.lines = ImmutableList.of();
         this.linesLock = new ReentrantLock();
 
-        this.visible = false;
+        this.visible = false; // initial state - no lock
+        this.visibleLock = new ReentrantLock();
+
         this.trackingDistance = 40.0f;
 
         this.location = null;
@@ -48,22 +53,27 @@ public class TextHologram <InternalIdType> {
     public void show() {
         SyncCatcher.ensureAsync();
 
-        if (this.visible) {
-            throw new IllegalStateException("Hologram already visible");
+        this.visibleLock.lock();
+        try {
+            if (this.isVisible()) {
+                throw new IllegalStateException("Hologram already visible");
+            }
+
+            if (this.location == null) {
+                throw new IllegalStateException("Hologram location is null");
+            }
+
+            if (!this.locationSynced) {
+                this.syncLocation(); // ignore result since spawn packets will be sent anyway
+            }
+
+            this.setVisible(true);
+
+            List<Player> viewers = this.tracker.getAllViewingPlayers();
+            this.show(viewers);
+        } finally {
+            this.visibleLock.unlock();
         }
-
-        if (this.location == null) {
-            throw new IllegalStateException("Hologram location is null");
-        }
-
-        if (!this.locationSynced) {
-            this.syncLocation(); // ignore result since spawn packets will be sent anyway
-        }
-
-        this.visible = true;
-
-        List<Player> viewers = this.tracker.getAllViewingPlayers();
-        this.show(viewers);
     }
 
     @ApiStatus.Internal
@@ -77,14 +87,19 @@ public class TextHologram <InternalIdType> {
     public void hide() {
         SyncCatcher.ensureAsync();
 
-        if (!this.visible) {
-            throw new IllegalStateException("Hologram already hidden");
+        this.visibleLock.lock();
+        try {
+            if (!this.isVisible()) {
+                throw new IllegalStateException("Hologram already hidden");
+            }
+
+            this.setVisible(false);
+
+            List<Player> viewers = this.tracker.getAllViewingPlayers();
+            this.hide(viewers);
+        } finally {
+            this.visibleLock.unlock();
         }
-
-        this.visible = false;
-
-        List<Player> viewers = this.tracker.getAllViewingPlayers();
-        this.hide(viewers);
     }
 
     @ApiStatus.Internal
@@ -108,7 +123,15 @@ public class TextHologram <InternalIdType> {
     }
 
     public void setLocation(Location location) {
-        boolean holoVisible = this.visible; // thread safety: consistency
+        boolean holoVisible; // thread safety: consistency
+
+        this.visibleLock.lock();
+        try {
+            holoVisible = this.isVisible();
+        } finally {
+            this.visibleLock.unlock();
+        }
+
         if (holoVisible) SyncCatcher.ensureAsync();
 
         this.location = location.clone();
@@ -140,7 +163,21 @@ public class TextHologram <InternalIdType> {
     // Negating code only serves to confuse
     @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     public boolean isVisible() {
-        return this.visible;
+        this.visibleLock.lock();
+        try {
+            return this.visible;
+        } finally {
+            this.visibleLock.unlock();
+        }
+    }
+
+    private void setVisible(boolean state) {
+        this.visibleLock.lock();
+        try {
+            this.visible = state;
+        } finally {
+            this.visibleLock.unlock();
+        }
     }
 
     public List<TextHologramLine> getLines() {
@@ -167,7 +204,15 @@ public class TextHologram <InternalIdType> {
     }
 
     public void addLine(TextHologramLine line) {
-        boolean holoVisible = this.visible; // thread safety: consistency
+        boolean holoVisible; // thread safety: consistency
+
+        this.visibleLock.lock();
+        try {
+            holoVisible = this.isVisible();
+        } finally {
+            this.visibleLock.unlock();
+        }
+
         if (holoVisible) SyncCatcher.ensureAsync();
 
         ImmutableList.Builder<TextHologramLine> linesBuilder = ImmutableList.builder();
@@ -189,7 +234,15 @@ public class TextHologram <InternalIdType> {
     }
 
     public void removeLine(int index) {
-        boolean holoVisible = this.visible; // thread safety: consistency
+        boolean holoVisible; // thread safety: consistency
+
+        this.visibleLock.lock();
+        try {
+            holoVisible = this.isVisible();
+        } finally {
+            this.visibleLock.unlock();
+        }
+
         if (holoVisible) SyncCatcher.ensureAsync();
 
         try {
