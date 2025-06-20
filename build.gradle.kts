@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "com.tcoded"
-version = "1.3.0"
+version = "1.3.1"
 
 allprojects {
     repositories {
@@ -49,7 +49,7 @@ subprojects {
 }
 
 dependencies {
-    compileOnly("com.tcoded:FoliaLib:0.5.1")
+    implementation("com.tcoded:FoliaLib:0.5.1")
     implementation(project(":common"))
     implementation(project(":nms_1_20_4", "reobf"))
     implementation(project(":nms_1_21_4", "shadow"))
