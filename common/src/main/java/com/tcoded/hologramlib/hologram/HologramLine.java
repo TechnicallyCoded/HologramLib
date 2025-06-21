@@ -76,7 +76,8 @@ public abstract class HologramLine {
         this.sendMetaPacket(players, (p, b) -> {
             b.match(pattern).replacement((result, b2) ->
                     Component.text(
-                            placeholderHandler.setPlaceholders(p, result.group(1))
+                            // Adventure does not understand regex groups, we use 0 instead of 1
+                            placeholderHandler.setPlaceholders(p, result.group(0))
                     )
             );
         });
