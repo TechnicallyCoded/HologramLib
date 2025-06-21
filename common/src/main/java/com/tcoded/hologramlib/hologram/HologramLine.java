@@ -1,11 +1,10 @@
 package com.tcoded.hologramlib.hologram;
 
 import com.tcoded.hologramlib.PlaceholderHandler;
-import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextReplacementConfig;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Collection;
@@ -18,6 +17,10 @@ import java.util.regex.Pattern;
 public abstract class HologramLine {
 
     public static final Double DEFAULT_LINE_HEIGHT = 0.3;
+    private static final LegacyComponentSerializer LEGACY_SERIALIZER = LegacyComponentSerializer.legacyAmpersand()
+            .toBuilder()
+            .hexColors()
+            .build();
 
     private final int entityId;
     private final UUID uuid;
@@ -75,7 +78,7 @@ public abstract class HologramLine {
 
         this.sendMetaPacket(players, (p, b) -> {
             b.match(pattern).replacement((result, b2) ->
-                    Component.text(
+                    LEGACY_SERIALIZER.deserialize(
                             // Adventure does not understand regex groups, we use 0 instead of 1
                             placeholderHandler.setPlaceholders(p, result.group(0))
                     )
