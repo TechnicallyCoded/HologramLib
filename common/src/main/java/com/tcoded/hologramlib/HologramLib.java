@@ -20,6 +20,7 @@ import java.util.logging.Logger;
 @SuppressWarnings("unused")
 public class HologramLib <InternalIdType> implements HologramLibShutdownExecutor {
 
+    protected static final String CREDITS = "HologramLib by TechnicallyCoded. https://github.com/TechnicallyCoded/HologramLib";
     private static Logger LOGGER = null;
 
     public static Logger logger() {
