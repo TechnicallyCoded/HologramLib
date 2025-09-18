@@ -21,7 +21,7 @@ repositories {
 Add the dependency:
 ```groovy
 dependencies {
-    implementation("com.tcoded:HologramLib:1.3.3")
+    implementation("com.tcoded:HologramLib:1.3.4")
 }
 ```
 (REQUIRED) Shade with Shadow plugin to avoid package conflicts:
@@ -46,7 +46,7 @@ shadowJar {
   <dependency>
     <groupId>com.tcoded</groupId>
     <artifactId>HologramLib</artifactId>
-    <version>1.3.3</version>
+    <version>1.3.4</version>
   </dependency>
 </dependencies>
 ```
