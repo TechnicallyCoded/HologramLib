@@ -84,7 +84,8 @@ public class NmsTextHologramLine extends TextHologramLine {
         if (meta.getLineWidth() >= 0) this.setNmsLineWidth(meta.getLineWidth());
         if (meta.getBackgroundColor() >= 0) this.setNmsBackgroundColor(meta.getBackgroundColor());
         if (meta.getTextOpacity() >= 0) this.setNmsTextOpacity(meta.getTextOpacity());
-        this.setNmsShadow(meta.isShadow() ? meta.getShadowStrength() : 0f);
+        this.setNmsTextShadow(meta.isShadow());
+        this.setNmsShadowStrength(meta.getShadowStrength());
         this.setNmsSeeThrough(meta.isSeeThrough());
         this.setNmsUseDefaultBackground(meta.isUseDefaultBackground());
         this.setNmsAlignLeft(meta.isAlignLeft());
@@ -196,10 +197,19 @@ public class NmsTextHologramLine extends TextHologramLine {
         this.parent.setTextOpacity(textOpacity);
     }
 
-    private void setNmsShadow(float strength) {
+    private void setNmsShadowStrength(float strength) {
         // noinspection UnnecessaryLocalVariable
         Display requiredWorkaround = this.parent;
         requiredWorkaround.setShadowStrength(strength);
+    }
+
+    private void setNmsTextShadow(boolean shadow) {
+        byte flags = this.parent.getFlags();
+
+        if (shadow) flags |= Display.TextDisplay.FLAG_SHADOW;
+        else flags &= ~Display.TextDisplay.FLAG_SHADOW;
+
+        this.parent.setFlags(flags);
     }
 
     private void setNmsSeeThrough(boolean seeThrough) {
