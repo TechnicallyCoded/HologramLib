@@ -4,12 +4,10 @@ import com.tcoded.hologramlib.hologram.TextHologram;
 import com.tcoded.hologramlib.types.HologramPlayerAction;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.lang.ref.WeakReference;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-import java.util.WeakHashMap;
+import java.util.*;
 
 public class HologramPlayerTracker {
 
@@ -26,7 +24,26 @@ public class HologramPlayerTracker {
     }
 
     public List<Player> getAllViewingPlayers() {
-        return this.viewers.stream().map(PlayerHologramTracker::getPlayer).toList();
+        // Patch: todo: some concurrent modification is allowing stale player trackers to remain in the set
+        List<PlayerHologramTracker> toRemove = new LinkedList<>();
+
+        List<@Nullable Player> result = this.viewers.stream()
+                // Patch: filter out stale trackers
+                .filter(pTracker -> {
+                    Player bukkitPlayer = pTracker.getPlayer();
+                    if (bukkitPlayer == null || !bukkitPlayer.isOnline()) {
+                        toRemove.add(pTracker);
+                        return false;
+                    }
+                    return true;
+                })
+                .map(PlayerHologramTracker::getPlayer)
+                .toList();
+
+        // Patch: remove stale trackers
+        toRemove.forEach(this::removeViewer);
+
+        return result;
     }
 
     public void addViewer(PlayerHologramTracker holoTracker) {
