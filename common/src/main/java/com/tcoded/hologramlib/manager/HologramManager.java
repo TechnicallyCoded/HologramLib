@@ -2,6 +2,7 @@ package com.tcoded.hologramlib.manager;
 
 import com.tcoded.hologramlib.HologramLib;
 import com.tcoded.hologramlib.PlaceholderHandler;
+import com.tcoded.hologramlib.hologram.PacketPreprocessor;
 import com.tcoded.hologramlib.hologram.TextHologram;
 import com.tcoded.hologramlib.hologram.TextHologramLine;
 import com.tcoded.hologramlib.utils.HologramLookupCache;
@@ -34,7 +35,7 @@ public abstract class HologramManager <InternalIdType> {
 
     protected abstract int nextEntityId(World world);
 
-    protected abstract TextHologramLine createNmsLine(PlaceholderHandler placeholderHandler);
+    protected abstract TextHologramLine createNmsLine(PlaceholderHandler placeholderHandler, PacketPreprocessor packetPreprocessor);
 
     protected abstract Location getPosUnsafe(Player player);
 
@@ -65,7 +66,7 @@ public abstract class HologramManager <InternalIdType> {
      * @return TextHologramLine
      */
     public TextHologramLine createLine() {
-        return createNmsLine(this.lib.getPlaceholderHandler());
+        return createNmsLine(this.lib.getPlaceholderHandler(), this.lib.getPacketPreprocessor());
     }
 
     /**

@@ -2,6 +2,7 @@ package com.tcoded.hologramlib.nms.v1_20_4;
 
 import com.tcoded.hologramlib.HologramLib;
 import com.tcoded.hologramlib.PlaceholderHandler;
+import com.tcoded.hologramlib.hologram.PacketPreprocessor;
 import com.tcoded.hologramlib.hologram.TextHologramLine;
 import com.tcoded.hologramlib.manager.HologramManager;
 import com.tcoded.hologramlib.hologram.TextHologram;
@@ -24,8 +25,8 @@ public class NmsHologramManager <T> extends HologramManager<T> {
     }
 
     @Override
-    protected TextHologramLine createNmsLine(PlaceholderHandler placeholderHandler) {
-        return NmsTextHologramLine.create(placeholderHandler);
+    protected TextHologramLine createNmsLine(PlaceholderHandler placeholderHandler, PacketPreprocessor packetPreprocessor) {
+        return NmsTextHologramLine.create(placeholderHandler, packetPreprocessor);
     }
 
     // Might become Folia incompatible at some point, so we build

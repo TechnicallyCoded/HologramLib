@@ -1,5 +1,6 @@
 package com.tcoded.hologramlib;
 
+import com.tcoded.hologramlib.hologram.PacketPreprocessor;
 import com.tcoded.hologramlib.listener.PlayerListener;
 import com.tcoded.hologramlib.listener.PluginListener;
 import com.tcoded.hologramlib.manager.HologramManager;
@@ -39,7 +40,9 @@ public class HologramLib <InternalIdType> implements HologramLibShutdownExecutor
     private final Plugin plugin;
     private FoliaLib foliaLib;
     private final PlatformScheduler scheduler;
-    private PlaceholderHandler placeholderHandler;
+    private final PlaceholderHandler placeholderHandler;
+
+    private PacketPreprocessor packetPreprocessor;
 
     private HologramManager<InternalIdType> hologramManager;
     private PlayerManager playerManager;
@@ -158,6 +161,14 @@ public class HologramLib <InternalIdType> implements HologramLibShutdownExecutor
 
     public PlaceholderHandler getPlaceholderHandler() {
         return placeholderHandler;
+    }
+
+    public PacketPreprocessor getPacketPreprocessor() {
+        return packetPreprocessor;
+    }
+
+    public void setPacketPreprocessor(PacketPreprocessor packetPreprocessor) {
+        this.packetPreprocessor = packetPreprocessor;
     }
 
 }

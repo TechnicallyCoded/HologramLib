@@ -4,6 +4,7 @@ import com.google.common.collect.ImmutableList;
 import com.mojang.math.Transformation;
 import com.tcoded.hologramlib.HologramLib;
 import com.tcoded.hologramlib.PlaceholderHandler;
+import com.tcoded.hologramlib.hologram.PacketPreprocessor;
 import com.tcoded.hologramlib.hologram.TextHologramLine;
 import com.tcoded.hologramlib.hologram.meta.BillboardConstraints;
 import com.tcoded.hologramlib.hologram.meta.TextDisplayMeta;
@@ -32,21 +33,22 @@ import org.joml.Vector3f;
 import java.util.Collection;
 import java.util.List;
 import java.util.function.BiConsumer;
+import java.util.function.UnaryOperator;
 import java.util.logging.Level;
 
 public class NmsTextHologramLine extends TextHologramLine {
 
     private final Display.TextDisplay parent;
 
-    public static NmsTextHologramLine create(PlaceholderHandler placeholderHandler) {
+    public static NmsTextHologramLine create(PlaceholderHandler placeholderHandler, PacketPreprocessor packetPreprocessor) {
         // Accepts null values
         // noinspection DataFlowIssue
         Display.TextDisplay parent = new Display.TextDisplay(EntityType.TEXT_DISPLAY, null);
-        return new NmsTextHologramLine(parent, placeholderHandler);
+        return new NmsTextHologramLine(parent, placeholderHandler, packetPreprocessor);
     }
 
-    public NmsTextHologramLine(Display.TextDisplay parent, PlaceholderHandler placeholderHandler) {
-        super(parent.getId(), placeholderHandler);
+    public NmsTextHologramLine(Display.TextDisplay parent, PlaceholderHandler placeholderHandler, PacketPreprocessor packetPreprocessor) {
+        super(parent.getId(), placeholderHandler, packetPreprocessor);
         this.parent = parent;
     }
 
@@ -173,13 +175,18 @@ public class NmsTextHologramLine extends TextHologramLine {
         sendPacket(players, packet);
     }
 
-    private static void sendPacket(Collection<Player> players, Packet<ClientGamePacketListener> packet) {
+    private void sendPacket(Collection<Player> players, Packet<ClientGamePacketListener> packet) {
         for (Player player : players) {
             sendPacket(player, packet);
         }
     }
 
-    private static void sendPacket(Player player, Packet<ClientGamePacketListener> packet) {
+    private void sendPacket(Player player, Packet<ClientGamePacketListener> packet) {
+        Packet<ClientGamePacketListener> processed = this.preprocessPacket(packet, player);
+        sendPacketRaw(player, processed);
+    }
+
+    private static void sendPacketRaw(Player player, Packet<ClientGamePacketListener> packet) {
         if (!player.isOnline()) {
             HologramLib.logger().warning("Player {NAME} is not online, cannot send packet".replace("{NAME}", player.getName()));
             return;

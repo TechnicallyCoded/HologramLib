@@ -8,8 +8,8 @@ public abstract class TextHologramLine extends HologramLine {
 
     private final TextDisplayMeta meta;
 
-    public TextHologramLine(int entityId, PlaceholderHandler placeholderHandler) {
-        super(entityId, placeholderHandler);
+    public TextHologramLine(int entityId, PlaceholderHandler placeholderHandler, PacketPreprocessor packetPreprocessor) {
+        super(entityId, placeholderHandler, packetPreprocessor);
         this.meta = new TextDisplayMeta();
     }
 

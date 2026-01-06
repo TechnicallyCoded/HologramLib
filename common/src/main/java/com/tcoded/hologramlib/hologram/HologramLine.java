@@ -25,14 +25,18 @@ public abstract class HologramLine {
     private final int entityId;
     private final UUID uuid;
     private final PlaceholderHandler placeholderHandler;
+    private final PacketPreprocessor packetPreprocessor;
 
     private Location location;
     private Double height;
 
-    public HologramLine(int entityId, PlaceholderHandler placeholderHandler) {
+    public HologramLine(int entityId, PlaceholderHandler placeholderHandler, PacketPreprocessor packetPreprocessor) {
         this.entityId = entityId;
         this.uuid = UUID.randomUUID();
+
         this.placeholderHandler = placeholderHandler;
+        this.packetPreprocessor = packetPreprocessor;
+
         this.location = null;
         this.height = null;
     }
@@ -98,6 +102,14 @@ public abstract class HologramLine {
 
     public void sendTeleportPackets(List<Player> viewers) {
         this.sendTeleportPacket(viewers, this.location);
+    }
+
+    protected <T> T preprocessPacket(T packet, Player viewer) {
+        if (this.packetPreprocessor == null) {
+            return packet;
+        }
+
+        return this.packetPreprocessor.preprocess(packet, viewer);
     }
 
 }
