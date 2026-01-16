@@ -1,6 +1,6 @@
 package com.tcoded.hologramlib.tracker;
 
-import com.tcoded.hologramlib.hologram.TextHologram;
+import com.tcoded.hologramlib.hologram.Hologram;
 import com.tcoded.hologramlib.types.HologramPlayerAction;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
@@ -11,10 +11,10 @@ import java.util.*;
 
 public class HologramPlayerTracker {
 
-    private final WeakReference<TextHologram<?>> hologramRef;
+    private final WeakReference<Hologram<?>> hologramRef;
     private final Set<PlayerHologramTracker> viewers;
 
-    public HologramPlayerTracker(TextHologram<?> hologram) {
+    public HologramPlayerTracker(Hologram<?> hologram) {
         this.hologramRef = new WeakReference<>(hologram);
         this.viewers = createTrackedSet();
     }
@@ -48,12 +48,12 @@ public class HologramPlayerTracker {
 
     public void addViewer(PlayerHologramTracker holoTracker) {
         this.viewers.add(holoTracker);
-        updatePlayer(holoTracker, TextHologram::show);
+        updatePlayer(holoTracker, Hologram::show);
     }
 
     public void removeViewer(PlayerHologramTracker holoTracker) {
         this.viewers.remove(holoTracker);
-        updatePlayer(holoTracker, TextHologram::hide);
+        updatePlayer(holoTracker, Hologram::hide);
     }
 
     public boolean isViewing(PlayerHologramTracker playerHoloTracker) {
@@ -61,7 +61,7 @@ public class HologramPlayerTracker {
     }
 
     private void updatePlayer(PlayerHologramTracker holoTracker, HologramPlayerAction consumer) {
-        TextHologram<?> holo = hologramRef.get();
+        Hologram<?> holo = hologramRef.get();
         if (holo == null) return;
         if (!holo.isVisible()) return;
 

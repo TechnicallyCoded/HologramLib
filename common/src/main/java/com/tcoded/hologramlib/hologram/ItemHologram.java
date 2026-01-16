@@ -1,7 +1,6 @@
 package com.tcoded.hologramlib.hologram;
 
 import com.google.common.collect.ImmutableList;
-import com.tcoded.hologramlib.PlaceholderHandler;
 import com.tcoded.hologramlib.tracker.HologramPlayerTracker;
 import com.tcoded.hologramlib.types.LocationUpdateHook;
 import com.tcoded.hologramlib.utils.SyncCatcher;
@@ -12,14 +11,12 @@ import org.jetbrains.annotations.ApiStatus;
 import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
 
-
-public class TextHologram <InternalIdType> implements Hologram<InternalIdType> {
+public class ItemHologram<InternalIdType> implements Hologram<InternalIdType> {
 
     private final InternalIdType internalId;
     private final HologramPlayerTracker tracker;
 
-    // The lines of the hologram. List needs to be rebuilt for any edit to structure.
-    private ImmutableList<TextHologramLine> lines;
+    private ImmutableList<ItemHologramLine> lines;
     private ReentrantLock linesLock;
 
     private boolean visible;
@@ -32,14 +29,14 @@ public class TextHologram <InternalIdType> implements Hologram<InternalIdType> {
     private Location lastSyncedLocation;
     private LocationUpdateHook locationUpdateHook;
 
-    public TextHologram(InternalIdType internalId) {
+    public ItemHologram(InternalIdType internalId) {
         this.internalId = internalId;
         this.tracker = new HologramPlayerTracker(this);
 
         this.lines = ImmutableList.of();
         this.linesLock = new ReentrantLock();
 
-        this.visible = false; // initial state - no lock
+        this.visible = false;
         this.visibleLock = new ReentrantLock();
 
         this.trackingDistance = 40.0f;
@@ -50,6 +47,7 @@ public class TextHologram <InternalIdType> implements Hologram<InternalIdType> {
         this.locationUpdateHook = null;
     }
 
+    @Override
     public void show() {
         SyncCatcher.ensureAsync();
 
@@ -64,7 +62,7 @@ public class TextHologram <InternalIdType> implements Hologram<InternalIdType> {
             }
 
             if (!this.locationSynced) {
-                this.syncLocation(); // ignore result since spawn packets will be sent anyway
+                this.syncLocation();
             }
 
             this.setVisible(true);
@@ -84,6 +82,7 @@ public class TextHologram <InternalIdType> implements Hologram<InternalIdType> {
         this.sendMetaPackets(players);
     }
 
+    @Override
     public void hide() {
         SyncCatcher.ensureAsync();
 
@@ -107,6 +106,7 @@ public class TextHologram <InternalIdType> implements Hologram<InternalIdType> {
         this.sendKillPackets(players);
     }
 
+    @Override
     public void updateMeta() {
         SyncCatcher.ensureAsync();
 
@@ -114,16 +114,19 @@ public class TextHologram <InternalIdType> implements Hologram<InternalIdType> {
         sendMetaPackets(viewers);
     }
 
+    @Override
     public InternalIdType getInternalId() {
         return this.internalId;
     }
 
+    @Override
     public Location getLocation() {
         return location.clone();
     }
 
+    @Override
     public void setLocation(Location location) {
-        boolean holoVisible; // thread safety: consistency
+        boolean holoVisible;
 
         this.visibleLock.lock();
         try {
@@ -136,31 +139,32 @@ public class TextHologram <InternalIdType> implements Hologram<InternalIdType> {
 
         this.location = location.clone();
 
-        // If the hologram is visible, we need to sync the location
-        // If the location was not previously synced, we need to teleport the hologram lines
         if (holoVisible && this.syncLocation()) {
             this.sendTeleportPackets(this.tracker.getAllViewingPlayers());
         }
     }
 
+    @Override
     public void hookLocationUpdate(LocationUpdateHook hook) {
         this.locationUpdateHook = hook;
     }
 
+    @Override
     public float getTrackingDistance() {
         return trackingDistance;
     }
 
+    @Override
     public void setTrackingDistance(float trackingDistance) {
         this.trackingDistance = trackingDistance;
     }
 
+    @Override
     public HologramPlayerTracker getTracker() {
         return this.tracker;
     }
 
-    // "Never prefer not using non-negatives"
-    // Negating code only serves to confuse
+    @Override
     @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     public boolean isVisible() {
         this.visibleLock.lock();
@@ -180,7 +184,7 @@ public class TextHologram <InternalIdType> implements Hologram<InternalIdType> {
         }
     }
 
-    public List<TextHologramLine> getLines() {
+    public List<ItemHologramLine> getLines() {
         try {
             this.linesLock.lock();
             return this.lines;
@@ -189,7 +193,7 @@ public class TextHologram <InternalIdType> implements Hologram<InternalIdType> {
         }
     }
 
-    public TextHologramLine getLine(int index) {
+    public ItemHologramLine getLine(int index) {
         try {
             this.linesLock.lock();
 
@@ -203,8 +207,8 @@ public class TextHologram <InternalIdType> implements Hologram<InternalIdType> {
         }
     }
 
-    public void addLine(TextHologramLine line) {
-        boolean holoVisible; // thread safety: consistency
+    public void addLine(ItemHologramLine line) {
+        boolean holoVisible;
 
         this.visibleLock.lock();
         try {
@@ -215,7 +219,7 @@ public class TextHologram <InternalIdType> implements Hologram<InternalIdType> {
 
         if (holoVisible) SyncCatcher.ensureAsync();
 
-        ImmutableList.Builder<TextHologramLine> linesBuilder = ImmutableList.builder();
+        ImmutableList.Builder<ItemHologramLine> linesBuilder = ImmutableList.builder();
         linesBuilder.addAll(this.lines);
         linesBuilder.add(line);
 
@@ -234,7 +238,7 @@ public class TextHologram <InternalIdType> implements Hologram<InternalIdType> {
     }
 
     public void removeLine(int index) {
-        boolean holoVisible; // thread safety: consistency
+        boolean holoVisible;
 
         this.visibleLock.lock();
         try {
@@ -252,7 +256,7 @@ public class TextHologram <InternalIdType> implements Hologram<InternalIdType> {
                 throw new IndexOutOfBoundsException("Index out of bounds");
             }
 
-            ImmutableList.Builder<TextHologramLine> linesBuilder = ImmutableList.builder();
+            ImmutableList.Builder<ItemHologramLine> linesBuilder = ImmutableList.builder();
             for (int i = 0; i < this.lines.size(); i++) {
                 if (i != index) {
                     linesBuilder.add(this.lines.get(i));
@@ -276,9 +280,6 @@ public class TextHologram <InternalIdType> implements Hologram<InternalIdType> {
         this.syncLineLocations();
     }
 
-    /**
-     * @return true if the location was updated, false if it was already synced
-     */
     private boolean syncLocation() {
         if (this.location == null) {
             throw new IllegalStateException("Hologram location is null");
@@ -290,7 +291,9 @@ public class TextHologram <InternalIdType> implements Hologram<InternalIdType> {
         boolean updated = false;
         if (!Objects.equals(from, to)) {
             this.syncLineLocations();
-            this.locationUpdateHook.handle(this, from, to);
+            if (this.locationUpdateHook != null) {
+                this.locationUpdateHook.handle(this, from, to);
+            }
             updated = true;
         }
 
@@ -303,11 +306,11 @@ public class TextHologram <InternalIdType> implements Hologram<InternalIdType> {
         try {
             this.linesLock.lock();
 
-            ImmutableList<TextHologramLine> linesRef = this.lines;
+            ImmutableList<ItemHologramLine> linesRef = this.lines;
 
             Location currentLocation = this.location.clone();
             for (int i = linesRef.size() - 1; i >= 0; i--) {
-                TextHologramLine line = linesRef.get(i);
+                ItemHologramLine line = linesRef.get(i);
                 line.setLocation(currentLocation);
 
                 currentLocation.add(0, line.getHeight().orElse(HologramLine.DEFAULT_LINE_HEIGHT), 0);
@@ -318,25 +321,25 @@ public class TextHologram <InternalIdType> implements Hologram<InternalIdType> {
     }
 
     private void sendSpawnPackets(List<Player> players) {
-        for (TextHologramLine line : this.lines) {
+        for (ItemHologramLine line : this.lines) {
             line.sendSpawnPacket(players);
         }
     }
 
     private void sendMetaPackets(List<Player> players) {
-        for (TextHologramLine line : this.lines) {
+        for (ItemHologramLine line : this.lines) {
             line.sendMetaPacket(players);
         }
     }
 
     private void sendTeleportPackets(List<Player> players) {
-        for (TextHologramLine line : this.lines) {
+        for (ItemHologramLine line : this.lines) {
             line.sendTeleportPackets(players);
         }
     }
 
     private void sendKillPackets(List<Player> players) {
-        for (TextHologramLine line : this.lines) {
+        for (ItemHologramLine line : this.lines) {
             line.sendKillPacket(players);
         }
     }

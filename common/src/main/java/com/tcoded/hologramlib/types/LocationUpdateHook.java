@@ -1,11 +1,11 @@
 package com.tcoded.hologramlib.types;
 
-import com.tcoded.hologramlib.hologram.TextHologram;
+import com.tcoded.hologramlib.hologram.Hologram;
 import org.bukkit.Location;
 
 @FunctionalInterface
 public interface LocationUpdateHook {
 
-    void handle(TextHologram<?> hologram, Location from, Location to);
+    void handle(Hologram<?> hologram, Location from, Location to);
 
 }
