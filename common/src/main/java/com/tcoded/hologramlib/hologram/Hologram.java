@@ -35,4 +35,6 @@ public interface Hologram<InternalIdType> {
 
     void updateMeta();
 
+    void updateLocations();
+
 }

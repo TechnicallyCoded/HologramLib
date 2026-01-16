@@ -272,6 +272,10 @@ public class TextHologram <InternalIdType> implements Hologram<InternalIdType> {
         if (holoVisible) this.sendTeleportPackets(this.tracker.getAllViewingPlayers());
     }
 
+    public void updateLocations() {
+        this.syncLineLocations();
+    }
+
     /**
      * @return true if the location was updated, false if it was already synced
      */
