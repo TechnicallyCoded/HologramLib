@@ -3,13 +3,19 @@ package com.tcoded.hologramlib.types.math;
 public class Quaternion4F {
 
     // Magic from Wikipedia
+    // Note: Input angles are in DEGREES, converted to radians internally
     public static Quaternion4F fromEuler(float roll, float yaw, float pitch) {
-        float cosRoll = (float) Math.cos(roll * 0.5);
-        float sinRoll = (float) Math.sin(roll * 0.5);
-        float cosYaw = (float) Math.cos(yaw * 0.5);
-        float sinYaw = (float) Math.sin(yaw * 0.5);
-        float cosPitch = (float) Math.cos(pitch * 0.5);
-        float sinPitch = (float) Math.sin(pitch * 0.5);
+        // Convert degrees to radians
+        float rollRad = (float) Math.toRadians(roll);
+        float yawRad = (float) Math.toRadians(yaw);
+        float pitchRad = (float) Math.toRadians(pitch);
+
+        float cosRoll = (float) Math.cos(rollRad * 0.5);
+        float sinRoll = (float) Math.sin(rollRad * 0.5);
+        float cosYaw = (float) Math.cos(yawRad * 0.5);
+        float sinYaw = (float) Math.sin(yawRad * 0.5);
+        float cosPitch = (float) Math.cos(pitchRad * 0.5);
+        float sinPitch = (float) Math.sin(pitchRad * 0.5);
 
         return new Quaternion4F(
                 sinRoll * cosPitch * cosYaw - cosRoll * sinPitch * sinYaw,
