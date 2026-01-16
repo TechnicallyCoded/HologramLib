@@ -82,6 +82,7 @@ public class HologramLib <InternalIdType> implements HologramLibShutdownExecutor
         } catch (Exception e) {
             // noinspection CallToPrintStackTrace
             e.printStackTrace();
+            throw new IllegalStateException("Failed to load NMS HologramManager for Minecraft version " + mcVersion + ". This version may not be supported.", e);
         }
 
         this.hologramManager.withCache(hologramLookupCache);

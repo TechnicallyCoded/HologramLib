@@ -1,6 +1,6 @@
 package com.tcoded.hologramlib.types.desync;
 
-import com.tcoded.hologramlib.hologram.TextHologram;
+import com.tcoded.hologramlib.hologram.Hologram;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
@@ -20,6 +20,6 @@ public interface DesyncAction {
     Location to();
 
     @Nullable
-    Collection<TextHologram<?>> manualHolos();
+    Collection<Hologram<?>> manualHolos();
 
 }

@@ -1,6 +1,6 @@
 package com.tcoded.hologramlib.manager;
 
-import com.tcoded.hologramlib.hologram.TextHologram;
+import com.tcoded.hologramlib.hologram.Hologram;
 import com.tcoded.hologramlib.tracker.PlayerHologramTracker;
 import com.tcoded.hologramlib.types.PlayerListSupplier;
 import com.tcoded.hologramlib.types.desync.DesyncAction;
@@ -101,13 +101,13 @@ public class PlayerManager {
         PlayerHologramTracker tracker = this.trackers.remove(player.getUniqueId());
         tracker.getTrackedArea().forEach(chunk -> {
             // Stop tracking player for each hologram in the chunk
-            Collection<TextHologram<?>> holograms = this.hologramLookupCache.getHolograms(chunk);
+            Collection<Hologram<?>> holograms = this.hologramLookupCache.getHolograms(chunk);
             if (holograms == null) return;
             holograms.forEach(holo -> holo.getTracker().removeViewer(tracker));
         });
     }
 
-    public void updateTrackersNear(TextHologram<?> hologram, Location to) {
+    public void updateTrackersNear(Hologram<?> hologram, Location to) {
         // Build set of players to update
         Set<PlayerHologramTracker> playerHoloTrackers = new HashSet<>();
 
@@ -144,7 +144,7 @@ public class PlayerManager {
         return this.playerListSupplier.get();
     }
 
-    private void markDesynced(Set<PlayerHologramTracker> playerHoloTrackers, TextHologram<?> hologram) {
+    private void markDesynced(Set<PlayerHologramTracker> playerHoloTrackers, Hologram<?> hologram) {
         for (PlayerHologramTracker playerHoloTracker : playerHoloTrackers) {
             // Sanity check
             Player player = playerHoloTracker.getPlayer();

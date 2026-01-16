@@ -2,10 +2,10 @@ package com.tcoded.hologramlib.nms.v1_20_4;
 
 import com.tcoded.hologramlib.HologramLib;
 import com.tcoded.hologramlib.PlaceholderHandler;
+import com.tcoded.hologramlib.hologram.ItemHologramLine;
 import com.tcoded.hologramlib.hologram.PacketPreprocessor;
 import com.tcoded.hologramlib.hologram.TextHologramLine;
 import com.tcoded.hologramlib.manager.HologramManager;
-import com.tcoded.hologramlib.hologram.TextHologram;
 import net.minecraft.world.entity.Entity;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -27,6 +27,11 @@ public class NmsHologramManager <T> extends HologramManager<T> {
     @Override
     protected TextHologramLine createNmsLine(PlaceholderHandler placeholderHandler, PacketPreprocessor packetPreprocessor) {
         return NmsTextHologramLine.create(placeholderHandler, packetPreprocessor);
+    }
+
+    @Override
+    protected ItemHologramLine createNmsItemLine(PlaceholderHandler placeholderHandler) {
+        return NmsItemHologramLine.create(placeholderHandler);
     }
 
     // Might become Folia incompatible at some point, so we build

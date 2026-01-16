@@ -1,6 +1,6 @@
 package com.tcoded.hologramlib.tracker;
 
-import com.tcoded.hologramlib.hologram.TextHologram;
+import com.tcoded.hologramlib.hologram.Hologram;
 import com.tcoded.hologramlib.types.chunk.ChunkArea;
 import com.tcoded.hologramlib.types.chunk.ChunkKey;
 import com.tcoded.hologramlib.utils.HologramLookupCache;
@@ -24,7 +24,7 @@ public class PlayerHologramTracker {
 
     // Holograms which were specifically desynced due to an action outside the player's control
     // For example: a hologram was moved
-    private final Set<TextHologram<?>> desyncedHolograms;
+    private final Set<Hologram<?>> desyncedHolograms;
 
     private ChunkArea trackedArea;
 
@@ -75,7 +75,7 @@ public class PlayerHologramTracker {
     public void checkDesyncedHolograms() {
         if (this.desyncedHolograms.isEmpty()) return;
 
-        Set<TextHologram<?>> toCheck;
+        Set<Hologram<?>> toCheck;
 
         synchronized (this.desyncedHolograms) {
             toCheck = new HashSet<>(this.desyncedHolograms);
@@ -87,13 +87,13 @@ public class PlayerHologramTracker {
 
     private void checkChunkHolograms(Set<ChunkKey> chunks) {
         for (ChunkKey chunk : chunks) {
-            Collection<TextHologram<?>> holograms = this.hologramCache.getHolograms(chunk);
+            Collection<Hologram<?>> holograms = this.hologramCache.getHolograms(chunk);
             if (holograms == null) continue;
             holograms.forEach(this::checkHologram);
         }
     }
 
-    private void checkHologram(TextHologram<?> hologram) {
+    private void checkHologram(Hologram<?> hologram) {
         Player player = this.playerRef.get();
         if (player == null) return;
 
@@ -123,11 +123,11 @@ public class PlayerHologramTracker {
         return this.trackedArea;
     }
 
-    public void markDesynced(TextHologram<?> hologram) {
+    public void markDesynced(Hologram<?> hologram) {
         this.desyncedHolograms.add(hologram);
     }
 
-    public void markDesynced(Collection<TextHologram<?>> holograms) {
+    public void markDesynced(Collection<Hologram<?>> holograms) {
         this.desyncedHolograms.addAll(holograms);
     }
 
