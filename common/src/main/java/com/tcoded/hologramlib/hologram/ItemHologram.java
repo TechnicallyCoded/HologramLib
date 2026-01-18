@@ -308,12 +308,13 @@ public class ItemHologram<InternalIdType> implements Hologram<InternalIdType> {
 
             ImmutableList<ItemHologramLine> linesRef = this.lines;
 
-            Location currentLocation = this.location.clone();
+            Location baseLocation = this.location.clone();
             for (int i = linesRef.size() - 1; i >= 0; i--) {
                 ItemHologramLine line = linesRef.get(i);
-                line.setLocation(currentLocation);
-
-                currentLocation.add(0, line.getHeight().orElse(HologramLine.DEFAULT_LINE_HEIGHT), 0);
+                Location itemLocation = baseLocation.clone();
+                double heightOffset = line.getHeight().orElse(0.0);
+                itemLocation.add(0, heightOffset, 0);
+                line.setLocation(itemLocation);
             }
         } finally {
             this.linesLock.unlock();
