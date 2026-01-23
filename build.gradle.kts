@@ -53,7 +53,7 @@ dependencies {
     implementation(project(":common"))
     implementation(project(":nms_1_20_4", "reobf"))
     implementation(project(":nms_1_21_4", "shadow"))
-
+    implementation(project(":nms_1_21_11", "shadow"))
 
     compileOnly("net.kyori:adventure-text-minimessage:4.17.0")
 }
