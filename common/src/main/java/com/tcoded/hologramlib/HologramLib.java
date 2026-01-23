@@ -8,6 +8,7 @@ import com.tcoded.hologramlib.hologram.TextHologram;
 import com.tcoded.folialib.FoliaLib;
 import com.tcoded.folialib.impl.PlatformScheduler;
 import com.tcoded.hologramlib.manager.PlayerManager;
+import com.tcoded.hologramlib.nms.NmsUtil;
 import com.tcoded.hologramlib.tracker.TrackerUpdaterTask;
 import com.tcoded.hologramlib.types.HologramLibShutdownExecutor;
 import com.tcoded.hologramlib.utils.HologramLookupCache;
@@ -68,20 +69,10 @@ public class HologramLib <InternalIdType> implements HologramLibShutdownExecutor
 
         // Setup hologram manager
         String mcVersion = this.getPlugin().getServer().getMinecraftVersion();
-        String parsedVersion = mcVersion.replace('.', '_');
+        this.hologramManager = NmsUtil.findManagerClass(this, mcVersion);
 
-        try {
-            String rawClassName = HologramLib.class.getPackageName() + ".nms.v{VERSION}.NmsHologramManager";
-            String versionedClassName = rawClassName.replace("{VERSION}", parsedVersion);
-
-            Class<?> clazz = Class.forName(versionedClassName);
-            Constructor<?> constructor = clazz.getConstructor(this.getClass());
-
-            // noinspection unchecked
-            hologramManager = (HologramManager<InternalIdType>) constructor.newInstance(this);
-        } catch (Exception e) {
-            // noinspection CallToPrintStackTrace
-            e.printStackTrace();
+        if (this.hologramManager == null) {
+            throw new IllegalStateException("No compatible HologramManager found for Minecraft version: " + mcVersion);
         }
 
         this.hologramManager.withCache(hologramLookupCache);
