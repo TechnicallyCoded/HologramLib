@@ -4,7 +4,7 @@ plugins {
 }
 
 dependencies {
-    paperweight.foliaDevBundle("1.21.4-R0.1-SNAPSHOT")
+    paperweight.foliaDevBundle("1.21.11-R0.1-SNAPSHOT")
     compileOnly(project(":common"))
 }
 

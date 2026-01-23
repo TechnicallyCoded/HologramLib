@@ -8,11 +8,7 @@ import java.util.Map;
 
 public class NmsUtil {
 
-    private static final Map<String, String> versionMap = Map.of(
-            "1.20.4", "1.20.4",
-            "1.21.4", "1.21.4",
-            "1.21.11", "1.21.4"
-    );
+    private static final Map<String, String> versionMap = Map.of();
 
     public static <InternalIdType> HologramManager<InternalIdType> findManagerClass(HologramLib<InternalIdType> lib, String mcVersion) {
         String mappedVersion = versionMap.getOrDefault(mcVersion, mcVersion);
