@@ -68,7 +68,16 @@ public class PlayerHologramTracker {
     }
 
     public void checkDesyncedChunks() {
-        this.checkChunkHolograms(this.desyncedChunks);
+        // Build set to check
+        Set<ChunkKey> toCheck;
+
+        synchronized (this.desyncedChunks) {
+            toCheck = new HashSet<>(this.desyncedChunks);
+            this.desyncedChunks.clear();
+        }
+
+        // Perform processing
+        this.checkChunkHolograms(toCheck);
     }
 
     // Check the manually specified desynced holograms
