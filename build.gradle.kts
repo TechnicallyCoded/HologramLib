@@ -8,6 +8,8 @@ group = "com.tcoded"
 version = "1.4.3"
 
 allprojects {
+    apply(plugin = "java")
+
     repositories {
         maven { url = uri("https://repo.papermc.io/repository/maven-public/") }
         mavenCentral()
@@ -26,6 +28,23 @@ allprojects {
         maven { url = uri("https://jitpack.io") }
         maven { url = uri("https://repo.tcoded.com/releases/") }
         maven { url = uri("https://repo.extendedclip.com/releases/") }
+    }
+
+    val javaVersion = JavaVersion.VERSION_21
+    val javaVersInt = javaVersion.ordinal + 1;
+
+    java {
+        sourceCompatibility = javaVersion
+        targetCompatibility = javaVersion
+        if (JavaVersion.current() < javaVersion) {
+            toolchain.languageVersion = JavaLanguageVersion.of(javaVersInt)
+        }
+    }
+
+    tasks.withType<JavaCompile>().configureEach {
+        if (javaVersInt >= 10 || JavaVersion.current().isJava10Compatible) {
+            options.release = javaVersInt
+        }
     }
 }
 
@@ -56,23 +75,6 @@ dependencies {
     implementation(project(":nms_1_21_11", "shadow"))
 
     compileOnly("net.kyori:adventure-text-minimessage:4.17.0")
-}
-
-val targetJavaVersion = 21
-
-java {
-    val javaVersion = JavaVersion.toVersion(targetJavaVersion)
-    sourceCompatibility = javaVersion
-    targetCompatibility = javaVersion
-    if (JavaVersion.current() < javaVersion) {
-        toolchain.languageVersion = JavaLanguageVersion.of(targetJavaVersion)
-    }
-}
-
-tasks.withType<JavaCompile>().configureEach {
-    if (targetJavaVersion >= 10 || JavaVersion.current().isJava10Compatible) {
-        options.release = targetJavaVersion
-    }
 }
 
 tasks.processResources {
