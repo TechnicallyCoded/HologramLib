@@ -40,6 +40,15 @@ public class PlayerListener implements Listener {
         Location from = event.getFrom();
         Location to = event.getTo();
 
+        // No block change, ignore
+        if (from.getBlockX() == to.getBlockX() &&
+                from.getBlockY() == to.getBlockY() &&
+                from.getBlockZ() == to.getBlockZ())
+        {
+            return;
+        }
+
+        // Block changed, update holos
         this.playerManager.recordDesync(new MoveDesyncAction(player, from, to));
     }
 

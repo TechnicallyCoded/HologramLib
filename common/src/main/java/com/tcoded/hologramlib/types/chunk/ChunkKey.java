@@ -8,7 +8,11 @@ import java.lang.ref.WeakReference;
 import java.util.Objects;
 import java.util.UUID;
 
-public record ChunkKey(WeakReference<World> world, int chunkX, int chunkZ) {
+public record ChunkKey(WeakReference<World> world, int chunkX, int chunkZ, int hash) {
+
+    public ChunkKey(WeakReference<World> world, int chunkX, int chunkZ) {
+        this(world, chunkX, chunkZ, hash(world, chunkX, chunkZ));
+    }
 
     public ChunkKey(World world, int chunkX, int chunkZ) {
         this(new WeakReference<>(world), chunkX, chunkZ);
@@ -24,14 +28,15 @@ public record ChunkKey(WeakReference<World> world, int chunkX, int chunkZ) {
 
     @Override
     public int hashCode() {
-        World w = world.get();
-        int wHash = w == null ? 0 : w.getUID().hashCode();
-        return Objects.hash(wHash, chunkX, chunkZ);
+        return hash;
     }
 
     @Override
     public boolean equals(Object obj) {
-        if (obj instanceof ChunkKey(WeakReference<World> otherWorldRef, int otherX, int otherZ)) {
+        if (obj instanceof ChunkKey(WeakReference<World> otherWorldRef, int otherX, int otherZ, int hash)) {
+            // Optimization
+            if (hash != this.hash) return false;
+
             World selfWorld = this.world.get();
             UUID selfWorldUID = selfWorld == null ? null : selfWorld.getUID();
 
@@ -45,4 +50,11 @@ public record ChunkKey(WeakReference<World> world, int chunkX, int chunkZ) {
 
         return false;
     }
+
+    private static int hash(WeakReference<World> world, int chunkX, int chunkZ) {
+        World w = world.get();
+        int wHash = w == null ? 0 : w.getUID().hashCode();
+        return Objects.hash(wHash, chunkX, chunkZ);
+    }
+
 }
